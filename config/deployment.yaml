@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploypilot-controller
+  namespace: deploypilot-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: deploypilot-controller}
+  template:
+    metadata:
+      labels: {app: deploypilot-controller}
+    spec:
+      serviceAccountName: deploypilot-controller
+      containers:
+        - name: controller
+          image: deploypilot:dev
+          imagePullPolicy: IfNotPresent
+          env:
+            - {name: MODE, value: controller}
+            - {name: METRICS_ADDRESS, value: ":8080"}
+            - {name: PROBE_ADDRESS, value: ":8081"}
+          ports:
+            - {name: metrics, containerPort: 8080}
+            - {name: health, containerPort: 8081}
+          livenessProbe: {httpGet: {path: /healthz, port: health}}
+          readinessProbe: {httpGet: {path: /readyz, port: health}}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: deploypilot-controller-metrics
+  namespace: deploypilot-system
+  labels: {app: deploypilot-controller}
+spec:
+  selector: {app: deploypilot-controller}
+  ports: [{name: metrics, port: 8080, targetPort: metrics}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: deploypilot-api
+  namespace: deploypilot-system
+spec:
+  selector: {app: deploypilot-api}
+  ports: [{name: http, port: 8082, targetPort: http}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploypilot-api
+  namespace: deploypilot-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: deploypilot-api}
+  template:
+    metadata:
+      labels: {app: deploypilot-api}
+    spec:
+      serviceAccountName: deploypilot-api
+      containers:
+        - name: api
+          image: deploypilot:dev
+          imagePullPolicy: IfNotPresent
+          env:
+            - {name: MODE, value: api}
+            - {name: API_ADDRESS, value: ":8082"}
+            - {name: METRICS_ADDRESS, value: ":8080"}
+            - {name: API_TOKEN, valueFrom: {secretKeyRef: {name: deploypilot-api, key: token}}}
+            - {name: ALLOWED_NAMESPACES, value: demo}
+            - {name: ALLOWED_REGISTRIES, value: "ghcr.io/example/"}
+          ports:
+            - {name: http, containerPort: 8082}
+            - {name: metrics, containerPort: 8080}
+          livenessProbe: {httpGet: {path: /healthz, port: http}}
+          readinessProbe: {httpGet: {path: /readyz, port: http}}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 500m, memory: 256Mi}

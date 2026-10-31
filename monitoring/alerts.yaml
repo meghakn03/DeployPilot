@@ -1,0 +1,27 @@
+groups:
+  - name: deploypilot
+    rules:
+      - alert: DeployPilotControllerDown
+        expr: up{job="deploypilot-controller"} == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations:
+          summary: DeployPilot controller metrics target is down
+      - alert: DeployPilotAPIErrors
+        expr: sum(rate(deploypilot_api_requests_total{status=~"5.."}[5m])) / clamp_min(sum(rate(deploypilot_api_requests_total[5m])), 1) > 0.05
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: More than 5% of DeployPilot API requests are failing
+      - alert: DeployPilotWorkloadNotReady
+        expr: kube_deployment_status_replicas_available{deployment=~".+"} < kube_deployment_spec_replicas{deployment=~".+"}
+        for: 15m
+        labels: {severity: warning}
+        annotations:
+          summary: A Kubernetes workload has remained below its desired replica count
+      - alert: DeployPilotFailedRequests
+        expr: deploypilot_deployment_requests{state="failed"} > 0
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: DeployPilot has one or more failed deployment requests

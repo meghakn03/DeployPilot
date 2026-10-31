@@ -1,0 +1,122 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: deploymentrequests.deploypilot.io
+spec:
+  group: deploypilot.io
+  scope: Namespaced
+  names:
+    plural: deploymentrequests
+    singular: deploymentrequest
+    kind: DeploymentRequest
+    shortNames: [dpr]
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      additionalPrinterColumns:
+        - name: Image
+          type: string
+          jsonPath: .spec.image
+        - name: Ready
+          type: string
+          jsonPath: .status.readyReplicas
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            spec:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  minLength: 1
+                  maxLength: 512
+                replicas:
+                  type: integer
+                  format: int32
+                  minimum: 1
+                  maximum: 20
+                  default: 1
+                port:
+                  type: integer
+                  format: int32
+                  minimum: 1
+                  maximum: 65535
+                  default: 8080
+                resources:
+                  type: object
+                  properties:
+                    requests:
+                      type: object
+                      additionalProperties: {type: string}
+                    limits:
+                      type: object
+                      additionalProperties: {type: string}
+                readinessProbe:
+                  type: object
+                  required: [path]
+                  properties:
+                    path: {type: string, pattern: '^/', maxLength: 256}
+                    initialDelaySeconds: {type: integer, format: int32, minimum: 0, maximum: 600}
+                    periodSeconds: {type: integer, format: int32, minimum: 1, maximum: 300}
+                livenessProbe:
+                  type: object
+                  required: [path]
+                  properties:
+                    path:
+                      type: string
+                      pattern: '^/'
+                      maxLength: 256
+                    initialDelaySeconds:
+                      type: integer
+                      format: int32
+                      minimum: 0
+                      maximum: 600
+                    periodSeconds:
+                      type: integer
+                      format: int32
+                      minimum: 1
+                      maximum: 300
+                env:
+                  type: array
+                  maxItems: 100
+                  items:
+                    type: object
+                    required: [name]
+                    properties:
+                      name: {type: string, minLength: 1, maxLength: 128}
+                      value: {type: string, maxLength: 4096}
+                      secretName: {type: string, maxLength: 253}
+                      secretKey: {type: string, maxLength: 253}
+                    x-kubernetes-validations:
+                      - rule: "!(has(self.value) && has(self.secretName))"
+                        message: specify either value or a secret reference
+            status:
+              type: object
+              properties:
+                observedGeneration: {type: integer, format: int64}
+                readyReplicas: {type: integer, format: int32}
+                desiredReplicas: {type: integer, format: int32}
+                deploymentName: {type: string}
+                serviceName: {type: string}
+                conditions:
+                  type: array
+                  x-kubernetes-list-type: map
+                  x-kubernetes-list-map-keys: [type]
+                  items:
+                    type: object
+                    required: [type, status]
+                    properties:
+                      type: {type: string}
+                      status: {type: string, enum: ["True", "False", Unknown]}
+                      reason: {type: string}
+                      message: {type: string}
+                      lastTransitionTime: {type: string, format: date-time}
+      subresources:
+        status: {}

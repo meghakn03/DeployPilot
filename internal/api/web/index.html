@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f5f2" />
+    <title>DeployPilot</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="/" aria-label="DeployPilot home">
+          <span class="brand-mark"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 23.5 16 5l9 18.5H7Z"/><path d="M11.3 18.8h9.4M13.2 14.8h5.6"/></svg></span>
+          <span class="brand-name">deploy<span>pilot</span></span>
+        </a>
+        <div class="workspace-label">WORKSPACE</div>
+        <button class="nav-item active" type="button"><span class="nav-icon">◫</span> Deployments <span id="nav-count" class="nav-count">0</span></button>
+        <div class="sidebar-bottom">
+          <div class="cluster-card">
+            <span class="pulse-dot"></span>
+            <div><strong>Cluster connected</strong><small id="cluster-label">Checking API</small></div>
+          </div>
+          <button id="settings-button" class="settings-button" type="button"><span>⚙</span> API connection</button>
+          <div class="sidebar-foot">DEPLOYPILOT <span>v1.0</span></div>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div class="breadcrumbs"><span>Workspace</span><b>/</b><strong>Deployments</strong></div>
+          <div class="topbar-actions"><span id="last-updated" class="updated-label">Just now</span><button id="refresh-button" class="icon-button" type="button" aria-label="Refresh deployments" title="Refresh">↻</button><span class="avatar">DP</span></div>
+        </header>
+
+        <section class="page-heading">
+          <div><div class="eyebrow">KUBERNETES WORKLOADS</div><h1>Deployments</h1><p>Ship and monitor your applications across the cluster.</p></div>
+          <button id="new-deployment-button" class="primary-button" type="button"><span>＋</span> New deployment</button>
+        </section>
+
+        <section class="summary-grid" aria-label="Deployment summary">
+          <article class="summary-card"><div class="summary-top"><span>Total deployments</span><span class="summary-icon lilac">◫</span></div><strong id="total-count">—</strong><small>In selected namespace</small></article>
+          <article class="summary-card"><div class="summary-top"><span>Healthy</span><span class="summary-icon mint">✓</span></div><strong id="healthy-count">—</strong><small>All requested replicas ready</small></article>
+          <article class="summary-card"><div class="summary-top"><span>Progressing</span><span class="summary-icon amber">◷</span></div><strong id="progressing-count">—</strong><small>Waiting for workload readiness</small></article>
+          <article class="summary-card"><div class="summary-top"><span>Failed</span><span class="summary-icon rose">!</span></div><strong id="failed-count">—</strong><small>Needs attention</small></article>
+        </section>
+
+        <section class="deployments-panel">
+          <div class="panel-heading"><div><h2>All deployments</h2><p>Deployment requests managed by DeployPilot.</p></div><div class="panel-filters"><label class="namespace-filter"><span>Namespace</span><input id="namespace-filter" value="demo" aria-label="Filter namespace" /></label><button id="filter-button" class="secondary-button" type="button">Apply</button></div></div>
+          <div id="error-banner" class="error-banner" hidden></div>
+          <div id="loading-state" class="loading-state"><span class="spinner"></span> Loading deployments…</div>
+          <div id="empty-state" class="empty-state" hidden><div class="empty-illustration"><span>▱</span><i>＋</i></div><h3>No deployments yet</h3><p>Create a deployment request to run an application in this namespace.</p><button class="primary-button" type="button" data-create>＋ Create deployment</button></div>
+          <div id="table-wrap" class="table-wrap" hidden><table><thead><tr><th>NAME</th><th>STATUS</th><th>READY</th><th>IMAGE</th><th>CREATED</th><th></th></tr></thead><tbody id="deployment-rows"></tbody></table></div>
+          <div class="panel-footer"><span id="result-count">Showing 0 deployments</span><span class="auto-refresh"><i></i> Auto-refresh every 10s</span></div>
+        </section>
+        <footer class="page-footer"><span>DeployPilot</span><span>Deployment status is reported by the Kubernetes controller.</span></footer>
+      </main>
+    </div>
+
+    <dialog id="create-dialog" class="modal">
+      <form id="create-form" method="dialog">
+        <div class="modal-heading"><div><div class="eyebrow">NEW WORKLOAD</div><h2>Create deployment</h2><p>Deploy a container image to your Kubernetes cluster.</p></div><button class="close-button" type="button" data-close aria-label="Close">×</button></div>
+        <div id="form-error" class="error-banner" hidden></div>
+        <div class="form-grid">
+          <label class="field full"><span>Deployment name <i>*</i></span><input name="name" required maxlength="63" pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?" placeholder="my-application" /><small>Lowercase letters, numbers, and hyphens.</small></label>
+          <label class="field full"><span>Container image <i>*</i></span><input name="image" required placeholder="ghcr.io/your-org/your-app:v1" /><small>Use an image from an approved registry.</small></label>
+          <label class="field"><span>Namespace <i>*</i></span><input name="namespace" required value="demo" /></label>
+          <label class="field"><span>Container port</span><input name="port" type="number" min="1" max="65535" value="8080" /></label>
+          <label class="field"><span>Replicas</span><input name="replicas" type="number" min="1" max="20" value="1" /></label>
+          <label class="field"><span>Readiness path</span><input name="readinessPath" placeholder="/ready" /></label>
+          <div class="section-rule full"><span>RESOURCES <small>optional · CPU and memory</small></span></div>
+          <label class="field"><span>CPU request</span><input name="cpuRequest" placeholder="100m" /></label>
+          <label class="field"><span>Memory request</span><input name="memoryRequest" placeholder="128Mi" /></label>
+          <label class="field"><span>CPU limit</span><input name="cpuLimit" placeholder="500m" /></label>
+          <label class="field"><span>Memory limit</span><input name="memoryLimit" placeholder="256Mi" /></label>
+        </div>
+        <div class="modal-actions"><button class="secondary-button" type="button" data-close>Cancel</button><button id="submit-button" class="primary-button" type="submit">Create deployment <span>→</span></button></div>
+      </form>
+    </dialog>
+
+    <dialog id="detail-dialog" class="modal detail-modal"><div id="detail-content"></div></dialog>
+    <dialog id="token-dialog" class="modal token-modal"><form id="token-form" method="dialog"><div class="modal-heading"><div><div class="eyebrow">CONNECTION SETTINGS</div><h2>API connection</h2><p>Enter the bearer token configured for this DeployPilot API.</p></div><button class="close-button" type="button" data-close aria-label="Close">×</button></div><label class="field"><span>Bearer token</span><input id="token-input" type="password" autocomplete="off" placeholder="Enter API token" /></label><div class="modal-actions"><button class="secondary-button" type="button" data-close>Cancel</button><button class="primary-button" type="submit">Save token <span>→</span></button></div></form></dialog>
+    <div id="toast" class="toast" role="status"></div>
+    <script src="/app.js" defer></script>
+  </body>
+</html>

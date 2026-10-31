@@ -1,0 +1,87 @@
+openapi: 3.0.3
+info:
+  title: DeployPilot API
+  version: 1.0.0
+  description: Submit and inspect Kubernetes deployment requests.
+servers:
+  - url: http://localhost:8082
+security:
+  - bearerAuth: []
+paths:
+  /healthz:
+    get:
+      security: []
+      responses:
+        '200': {description: Process is alive}
+  /readyz:
+    get:
+      security: []
+      responses:
+        '200': {description: Kubernetes API is reachable}
+  /v1/deployments:
+    post:
+      summary: Create a deployment request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateDeployment'}
+      responses:
+        '202': {description: Request persisted; controller has not necessarily made it ready}
+        '422': {description: Field validation failed}
+        '401': {description: Authentication failed}
+    get:
+      summary: List requests
+      parameters:
+        - {name: namespace, in: query, schema: {type: string}}
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 500}}
+        - {name: continue, in: query, schema: {type: string}}
+      responses:
+        '200': {description: Page of requests}
+  /v1/deployments/{name}:
+    parameters:
+      - {name: name, in: path, required: true, schema: {type: string}}
+      - {name: namespace, in: query, required: true, schema: {type: string}}
+    get:
+      summary: Get request and observed status
+      responses: {'200': {description: Deployment request}}
+    delete:
+      summary: Delete request and owned workloads
+      responses: {'202': {description: Deletion accepted}}
+components:
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer}
+  schemas:
+    CreateDeployment:
+      type: object
+      required: [name, namespace, image]
+      properties:
+        name: {type: string, pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'}
+        namespace: {type: string}
+        image: {type: string, minLength: 1}
+        replicas: {type: integer, minimum: 1, maximum: 20, default: 1}
+        port: {type: integer, minimum: 1, maximum: 65535, default: 8080}
+        resources:
+          type: object
+          properties:
+            requests: {type: object, additionalProperties: {type: string}}
+            limits: {type: object, additionalProperties: {type: string}}
+        readinessProbe: {$ref: '#/components/schemas/Probe'}
+        livenessProbe: {$ref: '#/components/schemas/Probe'}
+        env:
+          type: array
+          items:
+            type: object
+            required: [name]
+            properties:
+              name: {type: string}
+              value: {type: string}
+              secretName: {type: string}
+              secretKey: {type: string}
+    Probe:
+      type: object
+      required: [path]
+      properties:
+        path: {type: string, pattern: '^/'}
+        initialDelaySeconds: {type: integer, minimum: 0}
+        periodSeconds: {type: integer, minimum: 1}

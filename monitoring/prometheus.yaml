@@ -1,0 +1,9 @@
+scrape_configs:
+  - job_name: deploypilot-api
+    metrics_path: /metrics
+    static_configs:
+      - targets: [deploypilot-api.deploypilot-system.svc:8082]
+  - job_name: deploypilot-controller
+    metrics_path: /metrics
+    static_configs:
+      - targets: [deploypilot-controller-metrics.deploypilot-system.svc:8080]

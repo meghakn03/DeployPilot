@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: deploypilot-controller
+  namespace: deploypilot-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: deploypilot-api
+  namespace: deploypilot-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: deploypilot-controller
+rules:
+  - apiGroups: [deploypilot.io]
+    resources: [deploymentrequests]
+    verbs: [get, list, watch]
+  - apiGroups: [deploypilot.io]
+    resources: [deploymentrequests/status]
+    verbs: [get, update, patch]
+  - apiGroups: [apps]
+    resources: [deployments]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [""]
+    resources: [services, pods]
+    verbs: [get, list, watch, create, update, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: deploypilot-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: deploypilot-controller
+subjects:
+  - kind: ServiceAccount
+    name: deploypilot-controller
+    namespace: deploypilot-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: deploypilot-api-readiness
+rules:
+  - apiGroups: [""]
+    resources: [namespaces]
+    verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: deploypilot-api-readiness
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: deploypilot-api-readiness
+subjects:
+  - kind: ServiceAccount
+    name: deploypilot-api
+    namespace: deploypilot-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: deploypilot-api
+  namespace: demo
+rules:
+  - apiGroups: [deploypilot.io]
+    resources: [deploymentrequests]
+    verbs: [get, list, create, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: deploypilot-api
+  namespace: demo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: deploypilot-api
+subjects:
+  - kind: ServiceAccount
+    name: deploypilot-api
+    namespace: deploypilot-system
