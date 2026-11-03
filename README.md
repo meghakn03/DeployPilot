@@ -1,3 +1,5 @@
+**Tech stack:** Go, Kubernetes, Docker, kind, Kustomize, Prometheus, Grafana, GitHub Actions
+
 # DeployPilot
 
 DeployPilot accepts HTTP deployment requests, stores them as namespaced Kubernetes custom resources, and reconciles each request into one Deployment and one Service. It targets a single cluster and HTTP workloads. It does not build images, route external traffic, schedule across clusters, or roll back releases.
